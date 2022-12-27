@@ -7,7 +7,7 @@ pipeline {
         stage('vcs') {
             agent { label 'build' }
             steps {
-                git url: "https://github.com/saleor/saleor-dashboard.git",
+                git url: "https://github.com/satishnamgadda/saleor.git",
                     branch: "main"
             }
         }
@@ -26,10 +26,23 @@ pipeline {
                 git url: "https://github.com/hashicorp/learn-terraform-provision-eks-cluster",
                     branch: "main"
                 sh 'terraform -chdir=/home/ubuntu/remote_root/workspace/salercore init'  
-               // sh 'terraform apply -auto-approve'
-				sh 'terraform destroy -auto-approve'
+                sh 'terraform apply -auto-approve'
+				//sh 'terraform destroy -auto-approve'
+                sh 'aws eks --region $(terraform -chdir=/home/ubuntu/remote_root/workspace/salercore output -raw region) update-kubeconfig  --name $(terraform -chdir=/home/ubuntu/remote_root/workspace/salercore output -raw cluster_name)'
+                    
+            }
+        }
+        stage('k8s') {
+            agent { label 'terraform' }
+            steps {
+                sh 'kubectl apply -f psql.yml'
+                sh 'kubectl apply -f psql-svc.yml'
+                sh 'kubectl apply -f cachedb.yml'
+                sh 'kubectl apply -f cache-svc.yml'
+                sh 'kubectl apply -f pvc.yml'
+                sh 'kubectl apply -f saleor.yml'
+                sh 'kubectl apply -f saleor-svc.yml'
                 
-               
             }
         }
     }
